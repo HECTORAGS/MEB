@@ -1,0 +1,112 @@
+---
+title: "Sesión 3. EMED - MEB"
+author: "Dr. Héctor de la Torre Gutiérrez"
+date: "Fecha de modificación: `r format (Sys.time(), '%d-%m-%Y')`"
+output:
+    html_document:
+       css: styles.css
+       toc: true
+       toc_float:
+        collapsed: false
+        smooth_scroll: false
+       toc_depth: 3
+       number_section: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Análisis de regresión simple.
+
+Supongamos que se extrae una muestra de farmacias instaladas en la ciudad de Querétaro. Los siguientes datos (en el chunk de código) corresponden a los costos $(x_i)$ y ventas $(y_i)$ de las 12 farmacias seleccionadas en la muestra.
+
+Los datos se capturan en R de la siguiente manera:
+
+```{r}
+datos_ejem<-matrix(c(11,19,10,15,14,20,13,14,12,16,20,33,21,32,
+15,18,22,29,18,22,19,23,16,20),ncol=2,byrow=T) #Se capturan los datos en forma de matriz
+
+dato_ejem2<-data.frame(Costo=datos_ejem[,1],Venta=datos_ejem[,2]) #Se arreglan los datos en forma de marco de datos
+
+```
+Se ajusto el modelo de regresión lineal simple mediante las siguientes instrucciones:
+
+```{r}
+regre_ejem<-lm(Venta~Costo,data=dato_ejem2)
+summary(regre_ejem)
+```
+Se observa de la anterior salida que, la variable $costo$ sí es significativa (p valor de 0.000159). El valor de $R_{ajustada}^2$ es muy bueno (75.21%). 
+
+Para estudiar el ajuste del modelo de regresión, se realiza un gráfico de dispersión, donde se muestra (en color rojo) la recta de regresión obtenida mediante el método de Mínimos cuadrados. En azul, se muestran otras rectas no obtenidas mediante dicho método. 
+
+```{r}
+plot(dato_ejem2)
+abline(a=-0.3984,b=1.3915,col="red",lwd=2) #Recta de mínimos cuadrados
+abline(a=-0.3984,b=1.2315,col="blue",lwd=2) #No mínimos cuadrados
+abline(a=-0.3984,b=1.59,col="blue",lwd=2) #No mínimos cuadrados
+abline(a=-0.3984,b=2.3915,col="blue",lwd=2) #No mínimos cuadrados
+legend("topleft",legend = c("Mínimos cuadrados","No mínimos cuadrados"),
+       col=c("Red","Blue"),pch="-----",cex=1.5)
+```
+
+Se realiza un análisis de varianza para visualizar la proporción de varianza explicada por el modelo y por los residuales. 
+
+```{r}
+summary(aov(regre_ejem))
+```
+De lo anterior se puede notar que el total de varianza es: 350.3+101.9 = 452.2, de la cual (350.3/452.2) el 77.49% es explicada por el modelo, y el restante 22.51% por los residuales. 
+
+Los intervalos de confianza para los coefiencientes se obtienen de la siguiente manera:
+
+```{r}
+regre_ejem$coefficients
+resumen_regre<-summary(regre_ejem)
+
+confint(regre_ejem)
+```
+
+Ahora, si se desea estimar las ventas promedio para farmacias que reportan un costo de $25$, se obtiene mediante la siguiente instrucción:
+
+```{r}
+predict(regre_ejem, newdata=data.frame(Costo=25),interval='confidence',level=0.95)
+```
+Supóngase que se desea realizar un intervalo de predicción para los costos de 30 y 35, lo cual se obtiene con la siguiente instrucción:
+
+```{r}
+predict(regre_ejem, newdata=data.frame(Costo=c(30,35)),interval='prediction',level=0.95)
+```
+
+## Análisis de residuales
+El siguiente paso a seguir corresponde a la validación de los supuestos del modelo mediante el análisis de los residuales. 
+El primer supuesto a probar es el relacionado a la distribución de los residuales. Dichos residuales se analizarán en su versión estandarizada. 
+Este supuesto se probará mediante el gráfico QQ Normal y mediante la prueba Shapiro-Wilk. 
+El gráfico se obtiene mediante las siguientes instrucciones:
+
+```{r}
+residuales_stand<-rstandard(regre_ejem)
+qqnorm(residuales_stand,pch=19)
+qqline(residuales_stand)
+```
+
+La prueba de Shapiro-Wilk se obtiene al ejecutar las siguientes instrucciones:
+```{r}
+shapiro.test(residuales_stand)
+```
+Al observar el p valor de la prueba de Shapiro-Wilk y el gráfico QQ Normal, podemos concluir que los residuales sí siguen una distribución Normal. 
+
+En cuanto al supuesto de varianza constante, con las siguientes instrucciones se realizará el gráfico necesario para dicho supuesto:
+
+```{r}
+plot(regre_ejem$fitted.values,residuales_stand,xlab = "y_ajustados",ylab ="res_estand")
+```
+Se observa en el gráfico anterior que la varianza es constante a lo largo de los valores ajustados. 
+
+Finalmente, se investigará si existen outliers entre los residuales, para lo cual se generan estadísticas de resumen de estos mediante la siguiente instrucción:
+
+```{r}
+summary(residuales_stand)
+```
+
+Se observa de lo anterior que no existen outliers mayores a 3. 
+En resumen, se cumplieron los supuestos del modelo y no existen outliers, el modelo mostró un buen ajuste y explica un buen porcentaje de la varianza. 
